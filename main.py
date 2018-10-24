@@ -1,6 +1,8 @@
 """
 Dungeons and Dragons Skill Tracker for Multiple Players
 Author: Desmond McConnell
+
+URL: https://github.com/desmondmcconnell/DnD_Skill_Tracker
 """
 
 from kivy.app import App
