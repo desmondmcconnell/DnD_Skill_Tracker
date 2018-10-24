@@ -7,9 +7,9 @@ BoxLayout
             text: "New Player"
             id: new_player
             on_release: app.handle_new_player()
-#        Button:
-#            text: "Delete Current Player"
-#            on_release: app.handle_delete(player_selector.text)
+        Button:
+            text: "Delete Current Player"
+            on_release: app.handle_delete(player_selector.text)
         Spinner:
             id: player_selector
             on_text: app.character_swap(self.text)

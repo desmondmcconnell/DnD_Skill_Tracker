@@ -98,6 +98,8 @@ class DndSkillTracker(App):
     def add_player(self, file):
         """Adds player to the player list from the file"""
         player_name = self.get_player_name(file)
+        if player_name in self.player_dict:
+            return
         player = Player(player_name)
         player.load_player(file)
         self.players.append(player)
@@ -217,11 +219,14 @@ class DndSkillTracker(App):
         self.walk()
         self.root.ids.player_selector.values = self.player_dict.keys()
 
-    # def handle_delete(self, name):
-    #     """Deletes current player. WORK IN PROGRESS, PLAYER ONLY GETS REMOVED ON APP CLOSE"""
-    #     os.remove("{}.csv".format(name))
-    #     self.clear_widget()
-    #     self.get_spinner_values()
+    def handle_delete(self, name):
+        """Deletes current player."""
+        self.page_counter = 1
+        self.update_title()
+        os.remove("{}.csv".format(name))
+        self.clear_widget()
+        del (self.player_dict[name])
+        self.get_spinner_values()
 
 
 if __name__ == '__main__':
