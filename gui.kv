@@ -1,0 +1,49 @@
+BoxLayout
+    orientation: "vertical"
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint_y: 0.1
+        Button:
+            text: "New Player"
+            id: new_player
+            on_release: app.handle_new_player()
+#        Button:
+#            text: "Delete Current Player"
+#            on_release: app.handle_delete(player_selector.text)
+        Spinner:
+            id: player_selector
+            on_text: app.character_swap(self.text)
+        Button:
+            text: "Calculate Skills"
+            id: calculate
+            on_release: app.handle_calculate()
+    BoxLayout:
+        orientation: "horizontal"
+        Button:
+            text: "<"
+            id: previous_page
+            on_release: app.handle_previous()
+            size_hint_x: 0.1
+        BoxLayout:
+            orientation: "vertical"
+            id: creation_box
+            BoxLayout:
+                orientation: "horizontal"
+                id: box_1
+            BoxLayout:
+                orientation: "horizontal"
+                id: box_2
+            BoxLayout:
+                orientation: "horizontal"
+                id: box_3
+            BoxLayout:
+                orientation: "horizontal"
+                id: box_4
+            BoxLayout:
+                orientation: "horizontal"
+                id: box_5
+        Button:
+            text: ">"
+            id: next_page
+            on_release: app.handle_next()
+            size_hint_x: 0.1
