@@ -1,26 +1,26 @@
-Appraise,1,0
-Balance,0,0
-Bluff,2,0
-Climb,5,0
+Appraise,12,0
+Balance,4,0
+Bluff,0,0
+Climb,0,0
 Concentration,0,0
-Craft,1,0
+Craft,0,0
 Decipher Script,0,0
-Diplomacy,15,0
+Diplomacy,0,0
 Disable Device,0,0
 Disguise,0,0
 Escape Artist,0,0
 Forgery,0,0
-Gather Information,2,0
-Handle Animal,5,0
+Gather Information,0,0
+Handle Animal,0,0
 Heal,0,0
 Hide,0,0
 Intimidate,0,0
-Jump,10,0
+Jump,0,0
 Knowledge,0,0
 Listen,0,0
 Move Silently,0,0
 Open Lock,0,0
-Perform,10,0
+Perform,0,0
 Profession,0,0
 Ride,0,0
 Search,0,0

@@ -26,6 +26,7 @@ BOX_ID_MAP = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 1,
 class DndSkillTracker(App):
 
     label_text = StringProperty()
+    status_text = StringProperty()
 
     def __init__(self, **kwargs):
         """Constructor method"""
@@ -40,6 +41,7 @@ class DndSkillTracker(App):
 
     def build(self):
         """Build the Kivy app from the .kv file"""
+        self.status_text = "Press 'Enter' In Text Box To Apply New Levels"
         self.update_title()
         self.root = Builder.load_file('gui.kv')
         os.chdir('Players')
@@ -125,40 +127,46 @@ class DndSkillTracker(App):
         """Deletes all the dynamic widgets"""
         for box in BOXES:
             self.root.ids["box_{}".format(box)].clear_widgets()
+        self.status_text = "Press 'Enter' In Text Box To Apply New Levels"
 
     def handle_pass_button(self, instance):
         """Adds 10% to level chance on successful skill use"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOX_ID_MAP[id_number]
-        if self.current_player.skills[id_number].chance_to_increase < 100:
-            self.current_player.skills[id_number].chance_to_increase += 10
-        if self.current_player.skills[id_number].chance_to_increase > 100:
-            self.current_player.skills[id_number].chance_to_increase = 100
+        current_skill = self.current_player.skills[id_number]
+        if current_skill.chance_to_increase < 100:
+            current_skill.chance_to_increase += 10
+        if current_skill.chance_to_increase > 100:
+            current_skill.chance_to_increase = 100
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_widget(box, id_number)
+        self.status_text = "{} Roll Succeeded. 10% Added to Level Up Chance".format(current_skill.name)
 
     def handle_fail_button(self, instance):
         """Adds 5% to level chance on failed skill use"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOX_ID_MAP[id_number]
-        if self.current_player.skills[id_number].chance_to_increase < 100:
-            self.current_player.skills[id_number].chance_to_increase += 5
+        current_skill = self.current_player.skills[id_number]
+        if current_skill.chance_to_increase < 100:
+            current_skill.chance_to_increase += 5
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_widget(box, id_number)
+        self.status_text = "{} Roll Failed. 5% Added to Level Up Chance".format(current_skill.name)
 
     def create_widget(self, box, id_number):
         """Adds the labels, text input and buttons for the skills in the range"""
-        self.label_text = str(self.current_player.skills[id_number].chance_to_increase)
+        current_skill = self.current_player.skills[id_number]
+        self.label_text = str(current_skill.chance_to_increase)
         chance_label = Label(text="{}%".format(self.label_text),
                              id="chance_{}".format(str(id_number)), size_hint_x=0.2)
         pass_button = Button(text="Pass", id="pass_{}".format(str(id_number)), size_hint_x=0.2)
         pass_button.bind(on_release=self.handle_pass_button)
         fail_button = Button(text="Fail", id="fail_{}".format(str(id_number)), size_hint_x=0.2)
         fail_button.bind(on_release=self.handle_fail_button)
-        skill_label = Label(text=self.current_player.skills[id_number].name)
-        skill_level = TextInput(text=str(self.current_player.skills[id_number].level), id="level_{}"
+        skill_label = Label(text=current_skill.name)
+        skill_level = TextInput(text=str(current_skill.level), id="level_{}"
                                 .format(str(id_number)), multiline=False)
         skill_level.bind(on_text_validate=self.handle_text)
         self.root.ids["box_{}".format(box)].add_widget(skill_label)
@@ -188,10 +196,12 @@ class DndSkillTracker(App):
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOX_ID_MAP[id_number]
-        self.current_player.skills[id_number].level = int(instance.text)
+        current_skill = self.current_player.skills[id_number]
+        current_skill.level = int(instance.text)
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_widget(box, id_number)
         self.current_player.save_player(self.player_to_filename[self.current_player.name])
+        self.status_text = "{} Level Changed To {}".format(current_skill.name, instance.text)
 
     def handle_new_player(self):
         """Handle the New Player button event"""
@@ -213,6 +223,7 @@ class DndSkillTracker(App):
         new_player.save_player("{}.csv".format(instance.text))
         self.clear_widget()
         self.get_spinner_values()
+        self.status_text = "{} Added To The Player List".format(instance.text)
 
     def get_spinner_values(self):
         """Gets any updates to the player list for the spinner options"""
@@ -227,6 +238,7 @@ class DndSkillTracker(App):
         self.clear_widget()
         del (self.player_to_index[name])
         self.get_spinner_values()
+        self.status_text = "{} Deleted!".format(self.root.ids.player_selector.text)
 
 
 if __name__ == '__main__':
