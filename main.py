@@ -17,10 +17,10 @@ import os
 
 DEFAULT_FILE = "DEFAULT_PLAYER.csv"
 BOXES = (1, 2, 3, 4, 5)
-BOX_IDS = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 1, 11: 2, 12: 3, 13: 4, 14: 5, 15: 1, 16: 2,
-           17: 3, 18: 4, 19: 5, 20: 1, 21: 2, 22: 3, 23: 4, 24: 5, 25: 1, 26: 2, 27: 3, 28: 4, 29: 5, 30: 1, 31: 2,
-           32: 3, 33: 4, 34: 5, 35: 1, 36: 2, 37: 3, 38: 4, 39: 5, 40: 1, 41: 2, 42: 3, 43: 4, 44: 5, 45: 1, 46: 2,
-           47: 3, 48: 4, 49: 5}
+BOX_ID_MAP = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 1, 11: 2, 12: 3, 13: 4, 14: 5, 15: 1,
+              16: 2, 17: 3, 18: 4, 19: 5, 20: 1, 21: 2, 22: 3, 23: 4, 24: 5, 25: 1, 26: 2, 27: 3, 28: 4, 29: 5, 30: 1,
+              31: 2, 32: 3, 33: 4, 34: 5, 35: 1, 36: 2, 37: 3, 38: 4, 39: 5, 40: 1, 41: 2, 42: 3, 43: 4, 44: 5, 45: 1,
+              46: 2, 47: 3, 48: 4, 49: 5}
 
 
 class DndSkillTracker(App):
@@ -32,10 +32,10 @@ class DndSkillTracker(App):
         super().__init__(**kwargs)
         self.current_player = False
         self.page_counter = 1
-        self.player_dict = {}
-        self.player_file_dict = {}
+        self.player_to_index = {}
+        self.player_to_filename = {}
         self.players = []
-        self.i_start = 0
+        self.index_start = 0
         self.player_number = 0
 
     def build(self):
@@ -44,7 +44,7 @@ class DndSkillTracker(App):
         self.root = Builder.load_file('gui.kv')
         os.chdir('Players')
         self.walk()
-        self.root.ids.player_selector.values = self.player_dict.keys()
+        self.root.ids.player_selector.values = self.player_to_index.keys()
         return self.root
 
     def handle_next(self):
@@ -55,8 +55,8 @@ class DndSkillTracker(App):
             self.clear_widget()
             self.page_counter += 1
             self.update_title()
-            self.i_start += 5
-            for i, box in enumerate(BOXES, self.i_start):
+            self.index_start += 5
+            for i, box in enumerate(BOXES, self.index_start):
                 self.create_widget(box, i)
         else:
             return
@@ -68,19 +68,19 @@ class DndSkillTracker(App):
         self.page_counter -= 1
         self.update_title()
         self.clear_widget()
-        self.i_start -= 5
-        for i, box in enumerate(BOXES, self.i_start):
+        self.index_start -= 5
+        for i, box in enumerate(BOXES, self.index_start):
             self.create_widget(box, i)
 
     def character_swap(self, player):
         """Changes the current character and resets all things accordingly"""
         self.page_counter = 1
         self.update_title()
-        player_index = self.player_dict[player]
+        player_index = self.player_to_index[player]
         self.current_player = self.players[player_index]
-        self.i_start = 0
+        self.index_start = 0
         self.clear_widget()
-        for i, box in enumerate(BOXES, self.i_start):
+        for i, box in enumerate(BOXES, self.index_start):
             self.create_widget(box, i)
 
     def update_title(self):
@@ -98,13 +98,13 @@ class DndSkillTracker(App):
     def add_player(self, file):
         """Adds player to the player list from the file"""
         player_name = self.get_player_name(file)
-        if player_name in self.player_dict:
+        if player_name in self.player_to_index:
             return
         player = Player(player_name)
         player.load_player(file)
         self.players.append(player)
-        self.player_file_dict[player_name] = file
-        self.player_dict[player_name] = self.player_number
+        self.player_to_filename[player_name] = file
+        self.player_to_index[player_name] = self.player_number
         self.player_number += 1
 
     def get_player_name(self, file_name):
@@ -130,7 +130,7 @@ class DndSkillTracker(App):
         """Adds 10% to level chance on successful skill use"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
-        box = BOX_IDS[id_number]
+        box = BOX_ID_MAP[id_number]
         if self.current_player.skills[id_number].chance_to_increase < 100:
             self.current_player.skills[id_number].chance_to_increase += 10
         if self.current_player.skills[id_number].chance_to_increase > 100:
@@ -142,7 +142,7 @@ class DndSkillTracker(App):
         """Adds 5% to level chance on failed skill use"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
-        box = BOX_IDS[id_number]
+        box = BOX_ID_MAP[id_number]
         if self.current_player.skills[id_number].chance_to_increase < 100:
             self.current_player.skills[id_number].chance_to_increase += 5
         self.root.ids["box_{}".format(box)].clear_widgets()
@@ -177,9 +177,9 @@ class DndSkillTracker(App):
                         skill.level += 1
                         skill.chance_to_increase = 0
             self.clear_widget()
-            for i, box in enumerate(BOXES, self.i_start):
+            for i, box in enumerate(BOXES, self.index_start):
                 self.create_widget(box, i)
-            self.current_player.save_player(self.player_file_dict[self.current_player.name])
+            self.current_player.save_player(self.player_to_filename[self.current_player.name])
         else:
             return
 
@@ -187,11 +187,11 @@ class DndSkillTracker(App):
         """Updates the player skill level to the inputted number"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
-        box = BOX_IDS[id_number]
+        box = BOX_ID_MAP[id_number]
         self.current_player.skills[id_number].level = int(instance.text)
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_widget(box, id_number)
-        self.current_player.save_player(self.player_file_dict[self.current_player.name])
+        self.current_player.save_player(self.player_to_filename[self.current_player.name])
 
     def handle_new_player(self):
         """Handle the New Player button event"""
@@ -217,7 +217,7 @@ class DndSkillTracker(App):
     def get_spinner_values(self):
         """Gets any updates to the player list for the spinner options"""
         self.walk()
-        self.root.ids.player_selector.values = self.player_dict.keys()
+        self.root.ids.player_selector.values = self.player_to_index.keys()
 
     def handle_delete(self, name):
         """Deletes current player."""
@@ -225,7 +225,7 @@ class DndSkillTracker(App):
         self.update_title()
         os.remove("{}.csv".format(name))
         self.clear_widget()
-        del (self.player_dict[name])
+        del (self.player_to_index[name])
         self.get_spinner_values()
 
 
