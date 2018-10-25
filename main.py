@@ -245,7 +245,7 @@ class DndSkillTracker(App):
             except FileNotFoundError:
                 self.status_text = "{} Doesn't Exist... They Were Already Deleted!!!".format(spinner.text)
         else:
-            self.status_text = "Please Select A Player To Delete First"
+            self.status_text = "Please Select A Player To Delete"
             return
 
 
