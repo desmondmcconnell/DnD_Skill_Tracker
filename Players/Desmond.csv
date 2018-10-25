@@ -1,12 +1,12 @@
-Appraise,12,0
+Appraise,12,15
 Balance,4,0
 Bluff,0,0
 Climb,0,0
 Concentration,0,0
 Craft,0,0
-Decipher Script,0,0
+Decipher Script,0,10
 Diplomacy,0,0
-Disable Device,0,0
+Disable Device,1,0
 Disguise,0,0
 Escape Artist,0,0
 Forgery,0,0

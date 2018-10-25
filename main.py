@@ -17,10 +17,6 @@ import os
 
 DEFAULT_FILE = "DEFAULT_PLAYER.csv"
 BOXES = (1, 2, 3, 4, 5)
-BOX_ID_MAP = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 1, 6: 2, 7: 3, 8: 4, 9: 5, 10: 1, 11: 2, 12: 3, 13: 4, 14: 5, 15: 1,
-              16: 2, 17: 3, 18: 4, 19: 5, 20: 1, 21: 2, 22: 3, 23: 4, 24: 5, 25: 1, 26: 2, 27: 3, 28: 4, 29: 5, 30: 1,
-              31: 2, 32: 3, 33: 4, 34: 5, 35: 1, 36: 2, 37: 3, 38: 4, 39: 5, 40: 1, 41: 2, 42: 3, 43: 4, 44: 5, 45: 1,
-              46: 2, 47: 3, 48: 4, 49: 5}
 
 
 class DndSkillTracker(App):
@@ -133,7 +129,7 @@ class DndSkillTracker(App):
         """Adds 10% to level chance on successful skill use"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
-        box = BOX_ID_MAP[id_number]
+        box = BOXES[id_number % 5]
         current_skill = self.current_player.skills[id_number]
         if current_skill.chance_to_increase < 100:
             current_skill.chance_to_increase += 10
@@ -147,7 +143,7 @@ class DndSkillTracker(App):
         """Adds 5% to level chance on failed skill use"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
-        box = BOX_ID_MAP[id_number]
+        box = BOXES[id_number % 5]
         current_skill = self.current_player.skills[id_number]
         if current_skill.chance_to_increase < 100:
             current_skill.chance_to_increase += 5
@@ -195,7 +191,7 @@ class DndSkillTracker(App):
         """Updates the player skill level to the inputted number"""
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
-        box = BOX_ID_MAP[id_number]
+        box = BOXES[id_number % 5]
         current_skill = self.current_player.skills[id_number]
         current_skill.level = int(instance.text)
         self.root.ids["box_{}".format(box)].clear_widgets()
@@ -218,6 +214,7 @@ class DndSkillTracker(App):
 
     def new_player(self, instance):
         """Adds a new player to the player list with default values"""
+        instance.text = instance.text.replace(".", "")
         new_player = Player(instance.text)
         new_player.load_player(DEFAULT_FILE)
         new_player.save_player("{}.csv".format(instance.text))
