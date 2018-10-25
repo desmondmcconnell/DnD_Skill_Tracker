@@ -10,13 +10,20 @@ BoxLayout
         Button:
             text: "Delete Current Player"
             on_release: app.handle_delete(player_selector.text)
-        Spinner:
-            id: player_selector
-            on_text: app.character_swap(self.text)
         Button:
             text: "Calculate Skills"
             id: calculate
             on_release: app.handle_calculate()
+    BoxLayout:
+        orientation: "horizontal"
+        size_hint_y: 0.1
+        Spinner:
+            id: player_selector
+            on_text: app.character_swap(self.text)
+        Spinner:
+            id: content_selector
+            text: "Skills"
+            on_text: app.content_swap(self.text)
     BoxLayout:
         orientation: "horizontal"
         Button:
