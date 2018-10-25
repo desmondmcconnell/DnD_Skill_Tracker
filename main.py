@@ -171,6 +171,7 @@ class DndSkillTracker(App):
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_skills(box, id_number)
         self.status_text = "{} Roll Succeeded. 10% Added to Level Up Chance".format(current_skill.name)
+        self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
 
     def handle_fail_button(self, instance):
         """Adds 5% to level chance on failed skill use"""
@@ -183,6 +184,7 @@ class DndSkillTracker(App):
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_skills(box, id_number)
         self.status_text = "{} Roll Failed. 5% Added to Level Up Chance".format(current_skill.name)
+        self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
 
     def create_skills(self, box, id_number):
         """Adds the labels, text input and buttons for the skills in the range"""
@@ -346,6 +348,8 @@ class DndSkillTracker(App):
         id_number = int(id_number[1])
         box = BOXES[id_number % 5]
         current_attribute = self.current_player.attributes[id_number]
+        if current_attribute.name == "Notes":
+            instance.text = instance.text.replace(",", "")
         current_attribute.quality = instance.text
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_attributes(box, id_number)
