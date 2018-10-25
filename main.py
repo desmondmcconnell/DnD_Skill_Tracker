@@ -20,7 +20,6 @@ BOXES = (1, 2, 3, 4, 5)
 
 
 class DndSkillTracker(App):
-
     label_text = StringProperty()
     status_text = StringProperty()
 
@@ -74,12 +73,15 @@ class DndSkillTracker(App):
         """Changes the current character and resets all things accordingly"""
         self.page_counter = 1
         self.update_title()
-        player_index = self.player_to_index[player]
-        self.current_player = self.players[player_index]
-        self.index_start = 0
-        self.clear_widget()
-        for i, box in enumerate(BOXES, self.index_start):
-            self.create_widget(box, i)
+        try:
+            player_index = self.player_to_index[player]
+            self.current_player = self.players[player_index]
+            self.index_start = 0
+            self.clear_widget()
+            for i, box in enumerate(BOXES, self.index_start):
+                self.create_widget(box, i)
+        except KeyError:
+            return
 
     def update_title(self):
         """Updates the title of the app"""
@@ -229,13 +231,22 @@ class DndSkillTracker(App):
 
     def handle_delete(self, name):
         """Deletes current player."""
+        spinner = self.root.ids.player_selector
         self.page_counter = 1
         self.update_title()
-        os.remove("{}.csv".format(name))
-        self.clear_widget()
-        del (self.player_to_index[name])
-        self.get_spinner_values()
-        self.status_text = "{} Deleted!".format(self.root.ids.player_selector.text)
+        if not name == "":
+            try:
+                os.remove("{}.csv".format(name))
+                self.clear_widget()
+                del (self.player_to_index[name])
+                self.get_spinner_values()
+                self.status_text = "{} Deleted!".format(spinner.text)
+                spinner.text = ""
+            except FileNotFoundError:
+                self.status_text = "{} Doesn't Exist... They Were Already Deleted!!!".format(spinner.text)
+        else:
+            self.status_text = "Please Select A Player To Delete First"
+            return
 
 
 if __name__ == '__main__':
