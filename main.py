@@ -15,7 +15,7 @@ from player import Player
 from random import randint
 import os
 
-DEFAULT_TEXT = "Press 'Enter' In Text Box To Apply New Levels"
+DEFAULT_TEXT = "Press 'Enter' In Text Box To Apply New Properties"
 DEFAULT_FILE = "DEFAULT_PLAYER"
 BOXES = (1, 2, 3, 4, 5)
 
@@ -34,6 +34,7 @@ class DndSkillTracker(App):
         self.player_attributes_to_filename = {}
         self.players = []
         self.skill_index_start = 0
+        self.attribute_index_start = 0
         self.player_number = 0
 
     def build(self):
@@ -49,26 +50,43 @@ class DndSkillTracker(App):
 
     def handle_next(self):
         """Displays the next set of skill widgets"""
-        if self.page_counter == 10:
-            return
-        if self.current_player:
-            self.clear_widget(DEFAULT_TEXT)
-            self.page_counter += 1
-            self.update_title()
-            self.skill_index_start += 5
-            self.create_skills_widgets()
+        if self.root.ids.content_selector.text == "Skills":
+            if self.page_counter == 11:
+                return
+            if self.current_player:
+                self.clear_widget(DEFAULT_TEXT)
+                self.page_counter += 1
+                self.update_title()
+                self.skill_index_start += 5
+                self.create_skills_widgets()
+            else:
+                return
         else:
-            return
+            if self.page_counter == 3:
+                return
+            if self.current_player:
+                self.clear_widget(DEFAULT_TEXT)
+                self.page_counter += 1
+                self.update_title()
+                self.attribute_index_start += 5
+                self.create_attributes_widgets()
 
     def handle_previous(self):
         """Displays the previous set of skill widgets"""
         if self.page_counter == 1:
             return
-        self.page_counter -= 1
-        self.update_title()
-        self.clear_widget(DEFAULT_TEXT)
-        self.skill_index_start -= 5
-        self.create_skills_widgets()
+        if self.root.ids.content_selector.text == "Skills":
+            self.page_counter -= 1
+            self.update_title()
+            self.clear_widget(DEFAULT_TEXT)
+            self.skill_index_start -= 5
+            self.create_skills_widgets()
+        else:
+            self.page_counter -= 1
+            self.update_title()
+            self.clear_widget(DEFAULT_TEXT)
+            self.attribute_index_start -= 5
+            self.create_attributes_widgets()
 
     def character_swap(self, player):
         """Changes the current character and resets all things accordingly"""
@@ -170,6 +188,12 @@ class DndSkillTracker(App):
         """Adds the labels, text input and buttons for the skills in the range"""
         try:
             current_skill = self.current_player.skills[id_number]
+            if current_skill.name == "SPARE":
+                name_object = TextInput(text=str(current_skill.name), id="skillname_{}"
+                                        .format(str(id_number)), multiline=False)
+                name_object.bind(on_text_validate=self.handle_skill_name)
+            else:
+                name_object = Label(text="{}".format(current_skill.name))
             self.label_text = str(current_skill.chance_to_increase)
             chance_label = Label(text="{}%".format(self.label_text),
                                  id="chance_{}".format(str(id_number)), size_hint_x=0.2)
@@ -177,11 +201,10 @@ class DndSkillTracker(App):
             pass_button.bind(on_release=self.handle_pass_button)
             fail_button = Button(text="Fail", id="fail_{}".format(str(id_number)), size_hint_x=0.2)
             fail_button.bind(on_release=self.handle_fail_button)
-            skill_label = Label(text=current_skill.name)
             skill_level = TextInput(text=str(current_skill.level), id="level_{}"
                                     .format(str(id_number)), multiline=False)
             skill_level.bind(on_text_validate=self.handle_text)
-            self.root.ids["box_{}".format(box)].add_widget(skill_label)
+            self.root.ids["box_{}".format(box)].add_widget(name_object)
             self.root.ids["box_{}".format(box)].add_widget(chance_label)
             self.root.ids["box_{}".format(box)].add_widget(skill_level)
             self.root.ids["box_{}".format(box)].add_widget(pass_button)
@@ -225,16 +248,25 @@ class DndSkillTracker(App):
         name_input = TextInput(multiline=False)
         instructions_label = Label(text="Press Enter When Done")
         name_input.bind(on_text_validate=self.new_player)
+        exit_button = Button(text="Exit Player Creation")
+        exit_button.bind(on_release=self.handle_exit_button)
         self.root.ids.box_2.add_widget(name_label)
         self.root.ids.box_3.add_widget(name_input)
         self.root.ids.box_4.add_widget(instructions_label)
+        self.root.ids.box_5.add_widget(exit_button)
+
+    def handle_exit_button(self, instance):
+        if self.root.ids.content_selector.text == "Skills":
+            self.clear_widget(DEFAULT_TEXT)
+            self.create_skills_widgets()
+        else:
+            self.root.ids.content_selector.text = "Skills"
 
     def new_player(self, instance):
         """Adds a new player to the player list with default values"""
         name = instance.text.replace(".", "")
         if name in self.player_to_index:
-            self.clear_widget("{} Already Exists".format(name))
-            self.create_skills_widgets()
+            self.status_text = "{} Already Exists".format(name)
             return
         new_player = Player(name)
         new_player.load_player_skills("{}.csv".format(DEFAULT_FILE))
@@ -272,20 +304,75 @@ class DndSkillTracker(App):
 
     def content_swap(self, text):
         if self.current_player:
+            self.clear_widget(DEFAULT_TEXT)
+            self.page_counter = 1
+            self.update_title()
             if text == "Skills":
-                self.clear_widget(DEFAULT_TEXT)
+                self.skill_index_start = 0
                 self.create_skills_widgets()
             elif text == "Attributes":
-                self.clear_widget(DEFAULT_TEXT)
+                self.attribute_index_start = 0
                 self.create_attributes_widgets()
         else:
             return
 
     def create_attributes_widgets(self):
         if self.current_player:
-            h_label = Label(text=self.current_player.a)
+            for i, box in enumerate(BOXES, self.attribute_index_start):
+                self.create_attributes(box, i)
         else:
             return
+
+    def create_attributes(self, box, id_number):
+        """Adds the labels, text input and buttons for the skills in the range"""
+        try:
+            current_attribute = self.current_player.attributes[id_number]
+            if current_attribute.name == "SPARE":
+                name_object = TextInput(text=str(current_attribute.name), id="attname_{}"
+                                        .format(str(id_number)), multiline=False, size_hint_x=0.3)
+                name_object.bind(on_text_validate=self.handle_attribute_name)
+            else:
+                name_object = Label(text="{}".format(current_attribute.name), size_hint_x=0.3)
+            attribute_info = TextInput(text=str(current_attribute.quality), id="attribute_{}"
+                                       .format(str(id_number)), multiline=False)
+            attribute_info.bind(on_text_validate=self.handle_attribute_quality)
+            self.root.ids["box_{}".format(box)].add_widget(name_object)
+            self.root.ids["box_{}".format(box)].add_widget(attribute_info)
+        except AttributeError:
+            return
+
+    def handle_attribute_quality(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_attribute = self.current_player.attributes[id_number]
+        current_attribute.quality = instance.text
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_attributes(box, id_number)
+        self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
+        self.status_text = "{} Properties Updates".format(current_attribute.name)
+
+    def handle_attribute_name(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_attribute = self.current_player.attributes[id_number]
+        current_attribute.name = instance.text
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_attributes(box, id_number)
+        self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
+        self.status_text = "SPARE Attribute Updated To {}".format(current_attribute.name)
+
+    def handle_skill_name(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_skill = self.current_player.skills[id_number]
+        current_skill.name = instance.text
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_skills(box, id_number)
+        self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
+        self.status_text = "SPARE Skill Updated To {}".format(current_skill.name)
 
 
 if __name__ == '__main__':
