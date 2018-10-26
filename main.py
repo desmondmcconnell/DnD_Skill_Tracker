@@ -32,9 +32,11 @@ class DndSkillTracker(App):
         self.player_to_index = {}
         self.player_skills_to_filename = {}
         self.player_attributes_to_filename = {}
+        self.player_items_to_filename = {}
         self.players = []
-        self.skill_index_start = 0
         self.attribute_index_start = 0
+        self.skill_index_start = 0
+        self.item_index_start = 0
         self.player_number = 0
 
     def build(self):
@@ -45,31 +47,36 @@ class DndSkillTracker(App):
         os.chdir('Players')
         self.walk()
         self.root.ids.player_selector.values = self.player_to_index.keys()
-        self.root.ids.content_selector.values = ("Skills", "Attributes")
+        self.root.ids.content_selector.values = ("Skills", "Attributes", "Items")
         return self.root
 
     def handle_next(self):
         """Displays the next set of skill widgets"""
-        if self.root.ids.content_selector.text == "Skills":
-            if self.page_counter == 11:
-                return
-            if self.current_player:
+        if self.current_player:
+            if self.root.ids.content_selector.text == "Skills":
+                if self.page_counter == 11:
+                    return
                 self.clear_widget(DEFAULT_TEXT)
                 self.page_counter += 1
                 self.update_title()
                 self.skill_index_start += 5
                 self.create_skills_widgets()
-            else:
-                return
-        else:
-            if self.page_counter == 3:
-                return
-            if self.current_player:
+            elif self.root.ids.content_selector.text == "Attributes":
+                if self.page_counter == 3:
+                    return
                 self.clear_widget(DEFAULT_TEXT)
                 self.page_counter += 1
                 self.update_title()
                 self.attribute_index_start += 5
                 self.create_attributes_widgets()
+            else:
+                if self.page_counter == 40:
+                    return
+                self.clear_widget(DEFAULT_TEXT)
+                self.page_counter += 1
+                self.update_title()
+                self.item_index_start += 5
+                self.create_items_widgets()
 
     def handle_previous(self):
         """Displays the previous set of skill widgets"""
@@ -81,12 +88,18 @@ class DndSkillTracker(App):
             self.clear_widget(DEFAULT_TEXT)
             self.skill_index_start -= 5
             self.create_skills_widgets()
-        else:
+        elif self.root.ids.content_selector.text == "Attributes":
             self.page_counter -= 1
             self.update_title()
             self.clear_widget(DEFAULT_TEXT)
             self.attribute_index_start -= 5
             self.create_attributes_widgets()
+        elif self.root.ids.content_selector.text == "Items":
+            self.page_counter -= 1
+            self.update_title()
+            self.clear_widget(DEFAULT_TEXT)
+            self.item_index_start -= 5
+            self.create_items_widgets()
 
     def character_swap(self, player):
         """Changes the current character and resets all things accordingly"""
@@ -110,7 +123,7 @@ class DndSkillTracker(App):
 
     def update_title(self):
         """Updates the title of the app"""
-        self.title = "Dungeons and Dragons Skill Tracker Page {}".format(self.page_counter)
+        self.title = "Dungeons and Dragons Character Tracker Page {}".format(self.page_counter)
 
     def walk(self):
         """Process all subdirectories using os.walk()."""
@@ -130,6 +143,9 @@ class DndSkillTracker(App):
         if "_1" in file:
             player.load_player_attributes(file)
             self.player_attributes_to_filename[player_name] = file
+        elif "_2" in file:
+            player.load_player_items(file)
+            self.player_items_to_filename[player_name] = file
         else:
             player.load_player_skills(file)
             self.players.append(player)
@@ -205,7 +221,7 @@ class DndSkillTracker(App):
             fail_button.bind(on_release=self.handle_fail_button)
             skill_level = TextInput(text=str(current_skill.level), id="level_{}"
                                     .format(str(id_number)), multiline=False)
-            skill_level.bind(on_text_validate=self.handle_text)
+            skill_level.bind(on_text_validate=self.handle_skill_level)
             self.root.ids["box_{}".format(box)].add_widget(name_object)
             self.root.ids["box_{}".format(box)].add_widget(chance_label)
             self.root.ids["box_{}".format(box)].add_widget(skill_level)
@@ -217,29 +233,37 @@ class DndSkillTracker(App):
     def handle_calculate(self):
         """Rolls dice to see if a skill levels up or not, if it does, resets the chance of levelling"""
         if self.current_player:
-            for skill in self.current_player.skills:
-                if skill.chance_to_increase > 0:
-                    d100 = randint(1, 101)
-                    if d100 + skill.chance_to_increase > 100:
-                        skill.level += 1
-                        skill.chance_to_increase = 0
-            self.clear_widget(DEFAULT_TEXT)
-            self.create_skills_widgets()
-            self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
+            if self.root.ids.content_selector.text == "Skills":
+                self.page_counter = 1
+                self.skill_index_start = 0
+                for skill in self.current_player.skills:
+                    if skill.chance_to_increase > 0:
+                        d100 = randint(1, 101)
+                        if d100 + skill.chance_to_increase > 100:
+                            skill.level += 1
+                            skill.chance_to_increase = 0
+                self.clear_widget(DEFAULT_TEXT)
+                self.create_skills_widgets()
+                self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
+            else:
+                return
         else:
             return
 
-    def handle_text(self, instance):
+    def handle_skill_level(self, instance):
         """Updates the player skill level to the inputted number"""
-        id_number = instance.id.split("_")
-        id_number = int(id_number[1])
-        box = BOXES[id_number % 5]
-        current_skill = self.current_player.skills[id_number]
-        current_skill.level = int(instance.text)
-        self.root.ids["box_{}".format(box)].clear_widgets()
-        self.create_skills(box, id_number)
-        self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
-        self.status_text = "{} Level Changed To {}".format(current_skill.name, instance.text)
+        try:
+            id_number = instance.id.split("_")
+            id_number = int(id_number[1])
+            box = BOXES[id_number % 5]
+            current_skill = self.current_player.skills[id_number]
+            current_skill.level = int(instance.text)
+            self.root.ids["box_{}".format(box)].clear_widgets()
+            self.create_skills(box, id_number)
+            self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
+            self.status_text = "{} Level Changed To {}".format(current_skill.name, instance.text)
+        except ValueError:
+            self.status_text = "Please Enter A Valid Number"
 
     def handle_new_player(self):
         """Handle the New Player button event"""
@@ -273,8 +297,10 @@ class DndSkillTracker(App):
         new_player = Player(name)
         new_player.load_player_skills("{}.csv".format(DEFAULT_FILE))
         new_player.load_player_attributes("{}_1.csv".format(DEFAULT_FILE))
+        new_player.load_player_items("{}_2.csv".format(DEFAULT_FILE))
         new_player.save_player_skills("{}.csv".format(name))
         new_player.save_player_attributes("{}_1.csv".format(name))
+        new_player.save_player_items("{}_2.csv".format(name))
         self.clear_widget(DEFAULT_TEXT)
         self.get_spinner_values()
         self.status_text = "{} Added To The Player List".format(name)
@@ -293,6 +319,7 @@ class DndSkillTracker(App):
             try:
                 os.remove("{}.csv".format(name))
                 os.remove("{}_1.csv".format(name))
+                os.remove("{}_2.csv".format(name))
                 self.clear_widget(DEFAULT_TEXT)
                 del (self.player_to_index[name])
                 self.get_spinner_values()
@@ -315,6 +342,9 @@ class DndSkillTracker(App):
             elif text == "Attributes":
                 self.attribute_index_start = 0
                 self.create_attributes_widgets()
+            elif text == "Items":
+                self.item_index_start = 0
+                self.create_items_widgets()
         else:
             return
 
@@ -322,6 +352,13 @@ class DndSkillTracker(App):
         if self.current_player:
             for i, box in enumerate(BOXES, self.attribute_index_start):
                 self.create_attributes(box, i)
+        else:
+            return
+
+    def create_items_widgets(self):
+        if self.current_player:
+            for i, box in enumerate(BOXES, self.item_index_start):
+                self.create_items(box, i)
         else:
             return
 
@@ -343,40 +380,165 @@ class DndSkillTracker(App):
         except AttributeError:
             return
 
+    def create_items(self, box, id_number):
+        """Adds the labels, text input and buttons for the items in the range"""
+        try:
+            current_item = self.current_player.items[id_number]
+            if current_item.enabled:
+                text = "Disable"
+            else:
+                text = "Enable"
+            nice_modifiers = str(current_item.modifiers).replace("'", "").replace("[", "").replace("]", "")
+            if current_item.name == "SPARE":
+                name_object = TextInput(text=str(current_item.name), id="itemname_{}"
+                                        .format(str(id_number)), multiline=False, size_hint_x=0.6)
+                name_object.bind(on_text_validate=self.handle_item_name)
+            else:
+                name_object = Label(text="{}".format(current_item.name), size_hint_x=0.6)
+            description = TextInput(text=str(current_item.description), id="description_{}"
+                                    .format(str(id_number)), multiline=False)
+            description.bind(on_text_validate=self.handle_item_description)
+            quantity = TextInput(text=str(current_item.quantity), id="quantity_{}"
+                                 .format(str(id_number)), multiline=False, size_hint_x=0.2)
+            quantity.bind(on_text_validate=self.handle_item_quantity)
+            skill_box = TextInput(text="{}".format(nice_modifiers), id="skillbox_{}"
+                                  .format(str(id_number)), multiline=False)
+            skill_box.bind(on_text_validate=self.handle_item_skills)
+            enable_button = Button(text=text, id="enabler_{}".format(str(id_number)), size_hint_x=0.22)
+            enable_button.bind(on_release=self.item_enabler)
+            self.root.ids["box_{}".format(box)].add_widget(name_object)
+            self.root.ids["box_{}".format(box)].add_widget(description)
+            self.root.ids["box_{}".format(box)].add_widget(quantity)
+            self.root.ids["box_{}".format(box)].add_widget(skill_box)
+            self.root.ids["box_{}".format(box)].add_widget(enable_button)
+        except AttributeError:
+            return
+
     def handle_attribute_quality(self, instance):
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOXES[id_number % 5]
         current_attribute = self.current_player.attributes[id_number]
-        if current_attribute.name == "Notes":
-            instance.text = instance.text.replace(",", "")
+        instance.text = instance.text.replace(",", "")
         current_attribute.quality = instance.text
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_attributes(box, id_number)
         self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
-        self.status_text = "{} Properties Updates".format(current_attribute.name)
+        self.status_text = "{} Properties Updated".format(current_attribute.name)
+
+    def handle_item_description(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_item = self.current_player.items[id_number]
+        instance.text = instance.text.replace(",", "")
+        current_item.description = instance.text
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_items(box, id_number)
+        self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+        self.status_text = "{} Description Updated".format(current_item.name)
+
+    def handle_item_quantity(self, instance):
+        try:
+            number = int(instance.text)
+            if number > 0:
+                instance.text = str(instance.text)
+                id_number = instance.id.split("_")
+                id_number = int(id_number[1])
+                box = BOXES[id_number % 5]
+                current_item = self.current_player.items[id_number]
+                current_item.quantity = instance.text
+                self.root.ids["box_{}".format(box)].clear_widgets()
+                self.create_items(box, id_number)
+                self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+                self.status_text = "{} Quantity Updated To {}".format(current_item.name, current_item.quantity)
+            else:
+                self.status_text = "WILL DELETE"
+        except ValueError:
+            self.status_text = "Please Enter A Valid Number"
 
     def handle_attribute_name(self, instance):
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOXES[id_number % 5]
         current_attribute = self.current_player.attributes[id_number]
+        instance.text = instance.text.replace(",", "")
         current_attribute.name = instance.text
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_attributes(box, id_number)
         self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
         self.status_text = "SPARE Attribute Updated To {}".format(current_attribute.name)
 
+    def handle_item_name(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_item = self.current_player.items[id_number]
+        instance.text = instance.text.replace(",", "")
+        current_item.name = instance.text
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_items(box, id_number)
+        self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+        self.status_text = "SPARE Item Updated To {}".format(current_item.name)
+
+    def handle_item_skills(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_item = self.current_player.items[id_number]
+        instance.text = instance.text.replace(",", ";")
+        as_list = [instance.text]
+        current_item.modifiers = as_list
+        if current_item.enabled:
+            self.handle_disable_item(current_item)
+            current_item.update_skill_modifiers()
+            self.handle_enable_item(current_item)
+        else:
+            current_item.update_skill_modifiers()
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_items(box, id_number)
+        self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+        self.status_text = "{} Modifiers Updated".format(current_item.name)
+
     def handle_skill_name(self, instance):
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOXES[id_number % 5]
         current_skill = self.current_player.skills[id_number]
+        instance.text = instance.text.replace(",", "")
         current_skill.name = instance.text
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_skills(box, id_number)
         self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
         self.status_text = "SPARE Skill Updated To {}".format(current_skill.name)
+
+    def item_enabler(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_item = self.current_player.items[id_number]
+        text = "Enabled" if not current_item.enabled else "Disabled"
+        current_item.switch_enabled()
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_items(box, id_number)
+        self.status_text = "{} {}".format(current_item.name, text)
+        if current_item.enabled:
+            self.handle_enable_item(current_item)
+        else:
+            self.handle_disable_item(current_item)
+        self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+
+    def handle_disable_item(self, current_item):
+        for skill in current_item.skills:
+            if skill.name in self.current_player.skill_to_index:
+                self.current_player.skills[self.current_player.skill_to_index[skill.name]].level -= skill.level
+                self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
+
+    def handle_enable_item(self, current_item):
+        for skill in current_item.skills:
+            if skill.name in self.current_player.skill_to_index:
+                self.current_player.skills[self.current_player.skill_to_index[skill.name]].level += skill.level
+                self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
 
 
 if __name__ == '__main__':
