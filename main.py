@@ -8,10 +8,12 @@ URL: https://github.com/desmondmcconnell/DnD_Skill_Tracker
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.properties import StringProperty
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
 from player import Player
+from attribute import Attribute
 from random import randint
 import os
 
@@ -38,6 +40,7 @@ class DndSkillTracker(App):
         self.skill_index_start = 0
         self.item_index_start = 0
         self.player_number = 0
+        self.player_prev_att_to_filename = {}
 
     def build(self):
         """Build the Kivy app from the .kv file"""
@@ -140,7 +143,10 @@ class DndSkillTracker(App):
             player = Player(player_name)
         else:
             player = self.players[self.player_to_index[player_name]]
-        if "_1" in file:
+        if "_0" in file:
+            player.load_player_previous_attributes(file)
+            self.player_prev_att_to_filename[player_name] = file
+        elif "_1" in file:
             player.load_player_attributes(file)
             self.player_attributes_to_filename[player_name] = file
         elif "_2" in file:
@@ -165,7 +171,7 @@ class DndSkillTracker(App):
             else:
                 marker = character
                 continue
-        player = player.replace("_1", "").replace("_2", "")
+        player = player.replace("_0", "").replace("_1", "").replace("_2", "")
         return player
 
     def clear_widget(self, text):
@@ -296,9 +302,11 @@ class DndSkillTracker(App):
             return
         new_player = Player(name)
         new_player.load_player_skills("{}.csv".format(DEFAULT_FILE))
+        new_player.load_player_previous_attributes("{}_0.csv".format(DEFAULT_FILE))
         new_player.load_player_attributes("{}_1.csv".format(DEFAULT_FILE))
         new_player.load_player_items("{}_2.csv".format(DEFAULT_FILE))
         new_player.save_player_skills("{}.csv".format(name))
+        new_player.save_player_prev_att("{}_0.csv".format(name))
         new_player.save_player_attributes("{}_1.csv".format(name))
         new_player.save_player_items("{}_2.csv".format(name))
         self.clear_widget(DEFAULT_TEXT)
@@ -318,6 +326,7 @@ class DndSkillTracker(App):
         if not name == "":
             try:
                 os.remove("{}.csv".format(name))
+                os.remove("{}_0.csv".format(name))
                 os.remove("{}_1.csv".format(name))
                 os.remove("{}_2.csv".format(name))
                 self.clear_widget(DEFAULT_TEXT)
@@ -344,6 +353,7 @@ class DndSkillTracker(App):
                 self.create_attributes_widgets()
             elif text == "Items":
                 self.item_index_start = 0
+                self.clear_widget("Name, Description, Quantity, Weight, Skill Modifiers")
                 self.create_items_widgets()
         else:
             return
@@ -373,7 +383,7 @@ class DndSkillTracker(App):
             else:
                 name_object = Label(text="{}".format(current_attribute.name), size_hint_x=0.3)
             attribute_info = TextInput(text=str(current_attribute.quality), id="attribute_{}"
-                                       .format(str(id_number)), multiline=False)
+                                       .format(str(id_number)), multiline=False, font_size=10)
             attribute_info.bind(on_text_validate=self.handle_attribute_quality)
             self.root.ids["box_{}".format(box)].add_widget(name_object)
             self.root.ids["box_{}".format(box)].add_widget(attribute_info)
@@ -388,7 +398,8 @@ class DndSkillTracker(App):
                 text = "Disable"
             else:
                 text = "Enable"
-            nice_modifiers = str(current_item.modifiers).replace("'", "").replace("[", "").replace("]", "")
+            nice_skill_modifiers = str(current_item.skill_modifiers).replace("'", "").replace("[", "").replace("]", "")
+            nice_att_modifier = str(current_item.attribute_modifiers).replace("'", "").replace("[", "").replace("]", "")
             if current_item.name == "SPARE":
                 name_object = TextInput(text=str(current_item.name), id="itemname_{}"
                                         .format(str(id_number)), multiline=False, size_hint_x=0.6)
@@ -396,34 +407,68 @@ class DndSkillTracker(App):
             else:
                 name_object = Label(text="{}".format(current_item.name), size_hint_x=0.6)
             description = TextInput(text=str(current_item.description), id="description_{}"
-                                    .format(str(id_number)), multiline=False)
+                                    .format(str(id_number)), multiline=False, font_size=10)
             description.bind(on_text_validate=self.handle_item_description)
             quantity = TextInput(text=str(current_item.quantity), id="quantity_{}"
                                  .format(str(id_number)), multiline=False, size_hint_x=0.2)
             quantity.bind(on_text_validate=self.handle_item_quantity)
-            skill_box = TextInput(text="{}".format(nice_modifiers), id="skillbox_{}"
-                                  .format(str(id_number)), multiline=False)
+            weight = TextInput(text=str(current_item.weight), id="weight_{}"
+                               .format(str(id_number)), multiline=False, size_hint_x=0.2)
+            weight.bind(on_text_validate=self.handle_item_weight)
+            mod_box = BoxLayout(orientation="vertical", id="modbox_{}".format(str(id_number)))
+            skill_box = TextInput(text="{}".format(nice_skill_modifiers), id="skillbox_{}"
+                                  .format(str(id_number)), multiline=False, font_size=10)
             skill_box.bind(on_text_validate=self.handle_item_skills)
-            enable_button = Button(text=text, id="enabler_{}".format(str(id_number)), size_hint_x=0.22)
+            attribute_box = TextInput(text="{}".format(nice_att_modifier), id="attbox_{}"
+                                      .format(str(id_number)), multiline=False, font_size=10)
+            attribute_box.bind(on_text_validate=self.handle_item_attributes)
+            mod_box.add_widget(skill_box)
+            mod_box.add_widget(attribute_box)
+            enable_button = Button(text=text, id="enabler_{}".format(str(id_number)), size_hint_x=0.25)
             enable_button.bind(on_release=self.item_enabler)
             self.root.ids["box_{}".format(box)].add_widget(name_object)
             self.root.ids["box_{}".format(box)].add_widget(description)
             self.root.ids["box_{}".format(box)].add_widget(quantity)
-            self.root.ids["box_{}".format(box)].add_widget(skill_box)
+            self.root.ids["box_{}".format(box)].add_widget(weight)
+            self.root.ids["box_{}".format(box)].add_widget(mod_box)
             self.root.ids["box_{}".format(box)].add_widget(enable_button)
         except AttributeError:
             return
+
+    def handle_item_attributes(self, instance):
+        if instance.text == "":
+            instance.text = "SPARE;Default"
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_item = self.current_player.items[id_number]
+        instance.text = instance.text.replace(",", ";")
+        as_list = [instance.text]
+        current_item.attribute_modifiers = as_list
+        if current_item.enabled:
+            self.handle_disable_item(current_item)
+            current_item.update_attribute_modifiers()
+            self.handle_enable_item(current_item)
+        else:
+            current_item.update_attribute_modifiers()
+        self.root.ids["box_{}".format(box)].clear_widgets()
+        self.create_items(box, id_number)
+        self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+        self.status_text = "{} Attribute Modifiers Updated".format(current_item.name)
 
     def handle_attribute_quality(self, instance):
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOXES[id_number % 5]
         current_attribute = self.current_player.attributes[id_number]
+        previous_attribute = self.current_player.previous_attributes[id_number]
         instance.text = instance.text.replace(",", "")
         current_attribute.quality = instance.text
+        previous_attribute.quality = instance.text
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_attributes(box, id_number)
         self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
+        self.current_player.save_player_prev_att(self.player_prev_att_to_filename[self.current_player.name])
         self.status_text = "{} Properties Updated".format(current_attribute.name)
 
     def handle_item_description(self, instance):
@@ -439,21 +484,78 @@ class DndSkillTracker(App):
         self.status_text = "{} Description Updated".format(current_item.name)
 
     def handle_item_quantity(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_item = self.current_player.items[id_number]
         try:
-            number = int(instance.text)
-            if number > 0:
-                instance.text = str(instance.text)
-                id_number = instance.id.split("_")
-                id_number = int(id_number[1])
-                box = BOXES[id_number % 5]
-                current_item = self.current_player.items[id_number]
+            weight = float(current_item.weight)
+            encumbrance = float(self.current_player.attributes[7].quality)
+            quantity = int(instance.text)
+            if quantity > 0:
+                if weight * (quantity - int(current_item.quantity)) > encumbrance:
+                    self.status_text = "Character Carrying Capacity Reached"
+                    self.root.ids["box_{}".format(box)].clear_widgets()
+                    self.create_items(box, id_number)
+                    return
+                encumbrance += weight * int(current_item.quantity)
+                encumbrance -= weight * quantity
+                self.current_player.attributes[7].quality = encumbrance
                 current_item.quantity = instance.text
                 self.root.ids["box_{}".format(box)].clear_widgets()
                 self.create_items(box, id_number)
-                self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
                 self.status_text = "{} Quantity Updated To {}".format(current_item.name, current_item.quantity)
             else:
-                self.status_text = "WILL DELETE"
+                self.clear_widget("{} Removed".format(current_item.name))
+                self.remove_item(current_item)
+            self.current_player.previous_attributes[7].quality = self.current_player.attributes[7].quality
+            self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+            self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
+            self.current_player.save_player_prev_att(self.player_prev_att_to_filename[self.current_player.name])
+        except ValueError:
+            self.status_text = "Please Enter A Valid Number"
+
+    def remove_item(self, current_item):
+        encumbrance = float(self.current_player.attributes[7].quality)
+        weight = float(current_item.weight) * int(current_item.quantity)
+        encumbrance += weight
+        self.current_player.attributes[7].quality = encumbrance
+        current_item.name = "SPARE"
+        current_item.description = "Description"
+        current_item.quantity = 1
+        current_item.weight = 0
+        current_item.skill_modifiers = ["SPARE;0"]
+        current_item.attribute_modifiers = ["SPARE;Default"]
+        current_item.update_skill_modifiers()
+        current_item.update_attribute_modifiers()
+        self.create_items_widgets()
+
+    def handle_item_weight(self, instance):
+        id_number = instance.id.split("_")
+        id_number = int(id_number[1])
+        box = BOXES[id_number % 5]
+        current_item = self.current_player.items[id_number]
+        try:
+            weight = float(instance.text)
+            current_weight = float(current_item.weight)
+            encumbrance = float(self.current_player.attributes[7].quality)
+            encumbrance_check = encumbrance + float(current_item.weight) * int(current_item.quantity)
+            if weight * int(current_item.quantity) <= encumbrance_check:
+                current_item.weight = instance.text
+                self.root.ids["box_{}".format(box)].clear_widgets()
+                self.create_items(box, id_number)
+                self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
+                self.status_text = "{} Weight Updated To {}".format(current_item.name, current_item.weight)
+                encumbrance += current_weight * int(current_item.quantity)
+                encumbrance -= weight * int(current_item.quantity)
+                self.current_player.attributes[7].quality = encumbrance
+                self.current_player.previous_attributes[7].quality = self.current_player.attributes[7].quality
+                self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
+                self.current_player.save_player_prev_att(self.player_prev_att_to_filename[self.current_player.name])
+            else:
+                self.status_text = "Character Carrying Capacity Reached"
+                self.root.ids["box_{}".format(box)].clear_widgets()
+                self.create_items(box, id_number)
         except ValueError:
             self.status_text = "Please Enter A Valid Number"
 
@@ -462,11 +564,14 @@ class DndSkillTracker(App):
         id_number = int(id_number[1])
         box = BOXES[id_number % 5]
         current_attribute = self.current_player.attributes[id_number]
+        previous_attribute = self.current_player.previous_attributes[id_number]
         instance.text = instance.text.replace(",", "")
         current_attribute.name = instance.text
+        previous_attribute.name = instance.text
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_attributes(box, id_number)
         self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
+        self.current_player.save_player_prev_att(self.player_prev_att_to_filename[self.current_player.name])
         self.status_text = "SPARE Attribute Updated To {}".format(current_attribute.name)
 
     def handle_item_name(self, instance):
@@ -482,13 +587,15 @@ class DndSkillTracker(App):
         self.status_text = "SPARE Item Updated To {}".format(current_item.name)
 
     def handle_item_skills(self, instance):
+        if instance.text == "":
+            instance.text = "SPARE;0"
         id_number = instance.id.split("_")
         id_number = int(id_number[1])
         box = BOXES[id_number % 5]
         current_item = self.current_player.items[id_number]
         instance.text = instance.text.replace(",", ";")
         as_list = [instance.text]
-        current_item.modifiers = as_list
+        current_item.skill_modifiers = as_list
         if current_item.enabled:
             self.handle_disable_item(current_item)
             current_item.update_skill_modifiers()
@@ -498,7 +605,7 @@ class DndSkillTracker(App):
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_items(box, id_number)
         self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
-        self.status_text = "{} Modifiers Updated".format(current_item.name)
+        self.status_text = "{} Skill Modifiers Updated".format(current_item.name)
 
     def handle_skill_name(self, instance):
         id_number = instance.id.split("_")
@@ -533,12 +640,20 @@ class DndSkillTracker(App):
             if skill.name in self.current_player.skill_to_index:
                 self.current_player.skills[self.current_player.skill_to_index[skill.name]].level -= skill.level
                 self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
+        for attribute in current_item.attributes:
+            if attribute.name in self.current_player.attribute_to_index:
+                self.current_player.attributes[self.current_player.attribute_to_index[attribute.name]].quality = self.current_player.previous_attributes[self.current_player.attribute_to_index[attribute.name]].quality
+                self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
 
     def handle_enable_item(self, current_item):
         for skill in current_item.skills:
             if skill.name in self.current_player.skill_to_index:
                 self.current_player.skills[self.current_player.skill_to_index[skill.name]].level += skill.level
                 self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
+        for attribute in current_item.attributes:
+            if attribute.name in self.current_player.attribute_to_index:
+                self.current_player.attributes[self.current_player.attribute_to_index[attribute.name]].quality = attribute.quality
+                self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
 
 
 if __name__ == '__main__':

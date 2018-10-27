@@ -1,0 +1,55 @@
+Appraise,0,0
+Balance,13,0
+Bluff,0,0
+Climb,13,0
+Concentration,0,0
+Craft,0,0
+Decipher Script,0,0
+Diplomacy,0,0
+Disable Device,0,0
+Disguise,0,0
+Escape Artist,13,0
+Forgery,0,0
+Gather Information,0,0
+Handle Animal,0,0
+Heal,13,0
+Hide,0,0
+Intimidate,0,0
+Jump,13,0
+Knowledge,0,0
+Listen,2,0
+Move Silently,0,0
+Open Lock,0,0
+Perform,0,0
+Profession,0,0
+Ride,0,0
+Search,0,0
+Sense Motive,0,0
+Sleight Of Hand,0,0
+Spellcraft,0,0
+Spot,15,0
+Survival,0,0
+Swim,0,0
+Tumble,13,0
+Use Magic Device,0,0
+Use Rope,0,0
+Strength,7,0
+Dexterity,1,0
+Constitution,0,0
+Intelligence,0,0
+Wisdom,4,0
+Charisma,2,0
+Fortitude Save,7,0
+Reflex Save,8,0
+Will Save,11,0
+Base Attack Bonus,7,0
+Grapple,7,0
+Initiative,1,0
+Dodge (AC),11,0
+Hit Points,50,0
+SPARE,0,0
+SPARE,0,0
+SPARE,0,0
+SPARE,0,0
+SPARE,0,0
+SPARE,0,0
