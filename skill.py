@@ -1,6 +1,4 @@
-"""
-Skills used by Dungeons and Dragons Players
-"""
+"""Skills used by Dungeons and Dragons Players"""
 
 
 class Skill:
@@ -14,7 +12,6 @@ class Skill:
         """Increases the level of the skill"""
         if self.chance_to_increase > 100:
             self.level += 1
-        return
 
     def __str__(self):
         return "{}: {}, {}%".format(self.name, self.level, self.chance_to_increase)

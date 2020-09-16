@@ -1,3 +1,6 @@
+""" The attributes that define any player"""
+
+
 class Attribute:
 
     def __init__(self, name="", quality=""):

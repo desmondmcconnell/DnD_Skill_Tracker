@@ -1,25 +1,26 @@
 """
 Dungeons and Dragons Skill Tracker for Multiple Players
 Author: Desmond McConnell
-
-URL: https://github.com/desmondmcconnell/DnD_Skill_Tracker
 """
+
+import os
+from random import randint
 
 from kivy.app import App
 from kivy.lang import Builder
 from kivy.properties import StringProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.textinput import TextInput
 from kivy.uix.label import Label
+from kivy.uix.textinput import TextInput
+
 from player import Player
-from attribute import Attribute
-from random import randint
-import os
 
 DEFAULT_TEXT = "Press 'Enter' In Text Box To Apply New Properties"
 DEFAULT_FILE = "DEFAULT_PLAYER"
 BOXES = (1, 2, 3, 4, 5)
+enable = True
+disable = False
 
 
 class DndSkillTracker(App):
@@ -29,7 +30,7 @@ class DndSkillTracker(App):
     def __init__(self, **kwargs):
         """Constructor method"""
         super().__init__(**kwargs)
-        self.current_player = False
+        self.current_player = Player
         self.page_counter = 1
         self.player_to_index = {}
         self.player_skills_to_filename = {}
@@ -306,7 +307,7 @@ class DndSkillTracker(App):
         new_player.load_player_attributes("{}_1.csv".format(DEFAULT_FILE))
         new_player.load_player_items("{}_2.csv".format(DEFAULT_FILE))
         new_player.save_player_skills("{}.csv".format(name))
-        new_player.save_player_prev_att("{}_0.csv".format(name))
+        new_player.save_player_attributes("{}_0.csv".format(name))
         new_player.save_player_attributes("{}_1.csv".format(name))
         new_player.save_player_items("{}_2.csv".format(name))
         self.clear_widget(DEFAULT_TEXT)
@@ -446,9 +447,9 @@ class DndSkillTracker(App):
         as_list = [instance.text]
         current_item.attribute_modifiers = as_list
         if current_item.enabled:
-            self.handle_disable_item(current_item)
+            self.handle_item(current_item, disable)
             current_item.update_attribute_modifiers()
-            self.handle_enable_item(current_item)
+            self.handle_item(current_item, enable)
         else:
             current_item.update_attribute_modifiers()
         self.root.ids["box_{}".format(box)].clear_widgets()
@@ -468,7 +469,7 @@ class DndSkillTracker(App):
         self.root.ids["box_{}".format(box)].clear_widgets()
         self.create_attributes(box, id_number)
         self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
-        self.current_player.save_player_prev_att(self.player_prev_att_to_filename[self.current_player.name])
+        self.current_player.save_player_attributes(self.player_prev_att_to_filename[self.current_player.name])
         self.status_text = "{} Properties Updated".format(current_attribute.name)
 
     def handle_item_description(self, instance):
@@ -597,9 +598,9 @@ class DndSkillTracker(App):
         as_list = [instance.text]
         current_item.skill_modifiers = as_list
         if current_item.enabled:
-            self.handle_disable_item(current_item)
+            self.handle_item(current_item, disable)
             current_item.update_skill_modifiers()
-            self.handle_enable_item(current_item)
+            self.handle_item(current_item, enable)
         else:
             current_item.update_skill_modifiers()
         self.root.ids["box_{}".format(box)].clear_widgets()
@@ -630,31 +631,30 @@ class DndSkillTracker(App):
         self.create_items(box, id_number)
         self.status_text = "{} {}".format(current_item.name, text)
         if current_item.enabled:
-            self.handle_enable_item(current_item)
+            self.handle_item(current_item, enable)
         else:
-            self.handle_disable_item(current_item)
+            self.handle_item(current_item, disable)
         self.current_player.save_player_items(self.player_items_to_filename[self.current_player.name])
 
-    def handle_disable_item(self, current_item):
+
+    def handle_item(self, current_item, enable):
         for skill in current_item.skills:
             if skill.name in self.current_player.skill_to_index:
-                self.current_player.skills[self.current_player.skill_to_index[skill.name]].level -= skill.level
+                if enable:
+                    self.current_player.skills[self.current_player.skill_to_index[skill.name]].level += skill.level
+                else:
+                    self.current_player.skills[self.current_player.skill_to_index[skill.name]].level -= skill.level
                 self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
         for attribute in current_item.attributes:
             if attribute.name in self.current_player.attribute_to_index:
-                self.current_player.attributes[self.current_player.attribute_to_index[attribute.name]].quality = self.current_player.previous_attributes[self.current_player.attribute_to_index[attribute.name]].quality
+                if enable:
+                    self.current_player.attributes[
+                        self.current_player.attribute_to_index[attribute.name]].quality = attribute.quality
+                else:
+                    self.current_player.attributes[self.current_player.attribute_to_index[attribute.name]].quality = \
+                        self.current_player.previous_attributes[
+                            self.current_player.attribute_to_index[attribute.name]].quality
                 self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
-
-    def handle_enable_item(self, current_item):
-        for skill in current_item.skills:
-            if skill.name in self.current_player.skill_to_index:
-                self.current_player.skills[self.current_player.skill_to_index[skill.name]].level += skill.level
-                self.current_player.save_player_skills(self.player_skills_to_filename[self.current_player.name])
-        for attribute in current_item.attributes:
-            if attribute.name in self.current_player.attribute_to_index:
-                self.current_player.attributes[self.current_player.attribute_to_index[attribute.name]].quality = attribute.quality
-                self.current_player.save_player_attributes(self.player_attributes_to_filename[self.current_player.name])
-
 
 if __name__ == '__main__':
     DndSkillTracker().run()
